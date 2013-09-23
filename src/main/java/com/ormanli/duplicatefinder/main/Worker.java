@@ -10,11 +10,33 @@
  ******************************************************************************/
 package com.ormanli.duplicatefinder.main;
 
+import java.util.ArrayList;
+
+import com.ormanli.duplicatefinder.util.FileHash;
+import com.ormanli.duplicatefinder.util.FileWalker;
+import com.ormanli.duplicatefinder.util.SQLExecuter;
+
 public class Worker implements Runnable {
+
+	private String path;
+
+	public Worker(String path) {
+		super();
+		this.path = path;
+	}
 
 	@Override
 	public void run() {
+		ArrayList<String> fileList = FileWalker.getFileList(path);
 
+		for (String filePath : fileList) {
+			String fileHash = FileHash.getFileHash(filePath);
+			try {
+				SQLExecuter.insertToTables(fileHash, filePath);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 }
