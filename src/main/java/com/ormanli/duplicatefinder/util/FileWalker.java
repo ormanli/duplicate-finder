@@ -15,13 +15,10 @@ import java.util.ArrayList;
 
 public class FileWalker {
 
-	private static ArrayList<String>	fileList	= new ArrayList<String>();
-
 	private FileWalker() {
 	}
 
-	private static void walk(String path) {
-
+	private static void walk(String path, ArrayList<String> fileList) {
 		File root = new File(path);
 		File[] list = root.listFiles();
 
@@ -30,15 +27,18 @@ public class FileWalker {
 
 		for (File f : list) {
 			if (f.isDirectory()) {
-				walk(f.getAbsolutePath());
+				walk(f.getAbsolutePath(), fileList);
 			} else {
 				fileList.add(f.getAbsoluteFile().toString());
 			}
 		}
 	}
 
-	public ArrayList<String> getFileList(String path) {
-		walk(path);
+	public static ArrayList<String> getFileList(String path) {
+		ArrayList<String> fileList = new ArrayList<String>();
+
+		walk(path, fileList);
+
 		return fileList;
 	}
 
