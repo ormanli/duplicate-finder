@@ -21,7 +21,7 @@ public class FileHash {
 
 	public static String getFileHash(String path) {
 		String hash = null;
-		
+
 		try {
 			MessageDigest md = MessageDigest.getInstance("SHA-256");
 			FileChannel in = new FileInputStream(path).getChannel();
@@ -40,7 +40,7 @@ public class FileHash {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		
+
 		return hash;
 	}
 }
