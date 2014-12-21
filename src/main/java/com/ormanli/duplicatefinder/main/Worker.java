@@ -10,13 +10,17 @@
  ******************************************************************************/
 package com.ormanli.duplicatefinder.main;
 
-import java.util.ArrayList;
+import java.util.List;
 
-import com.ormanli.duplicatefinder.util.FileHash;
-import com.ormanli.duplicatefinder.util.FileWalker;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.ormanli.duplicatefinder.util.FileUtil;
 import com.ormanli.duplicatefinder.util.SQLExecuter;
 
 public class Worker implements Runnable {
+
+	private static final Logger logger = LogManager.getLogger(Worker.class);
 
 	private String path;
 
@@ -27,15 +31,18 @@ public class Worker implements Runnable {
 
 	@Override
 	public void run() {
-		ArrayList<String> fileList = FileWalker.getFileList(path);
+		try {
+			List<String> fileList = FileUtil.getEntryList(path);
 
-		for (String filePath : fileList) {
-			String fileHash = FileHash.getFileHash(filePath);
-			try {
-				SQLExecuter.insertToTables(fileHash, filePath);
-			} catch (Exception e) {
-				e.printStackTrace();
+			if (fileList != null) {
+				logger.info("Worker " + this.hashCode() + " list length " + fileList.size());
+				for (String filePath : fileList) {
+					String fileHash = FileUtil.getFileHash(filePath);
+					SQLExecuter.getInstance().insertToTables(fileHash, filePath);
+				}
 			}
+		} catch (Exception e) {
+			logger.error(e);
 		}
 	}
 

@@ -10,97 +10,53 @@
  ******************************************************************************/
 package com.ormanli.duplicatefinder.util;
 
-import java.sql.ResultSet;
-import java.sql.Statement;
-import java.util.ArrayList;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.util.List;
+
+import org.jooq.DSLContext;
+import org.jooq.SQLDialect;
+import org.jooq.impl.DSL;
+
+import com.ormanli.duplicatefinder.db.public_.tables.Files;
 
 public class SQLExecuter {
 
+	private Connection connection;
+	private DSLContext create;
+
 	private SQLExecuter() {
-	}
-
-	public static void createTables() {
-
-		Statement statement = null;
 		try {
-			statement = InMemoryConnection.getInstance().getConnection().createStatement();
-
-			statement.executeUpdate("drop table if exists person");
-			statement.executeUpdate("create table files (file string, path string)");
+			Class.forName("org.h2.Driver");
+			this.connection = DriverManager.getConnection("jdbc:h2:mem:files");
+			this.connection.setAutoCommit(true);
+			create = DSL.using(this.connection, SQLDialect.H2);
+			// create.createTable(Files.FILES).column(Files.FILES.FILE,
+			// SQLDataType.CHAR).column(Files.FILES.PATH,
+			// SQLDataType.CHAR).execute();
+			create.execute("CREATE TABLE FILES(FILE VARCHAR, PATH VARCHAR);");
 		} catch (Exception e) {
 			e.printStackTrace();
-		} finally {
-			try {
-				statement.close();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
 		}
 	}
 
-	public static void insertToTables(String file, String path) throws Exception {
-		Statement statement = null;
-		try {
-			statement = InMemoryConnection.getInstance().getConnection().createStatement();
-
-			statement.executeUpdate("insert into files values('" + file + "', '" + path + "')");
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			try {
-				statement.close();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
+	private static class InMemoryConnectionHolder {
+		public static final SQLExecuter INSTANCE = new SQLExecuter();
 	}
 
-	public static List<String> getFileList() throws Exception {
-		Statement statement = null;
-		ArrayList<String> fileList = new ArrayList<String>();
-		try {
-			statement = InMemoryConnection.getInstance().getConnection().createStatement();
-
-			ResultSet rs = statement.executeQuery("select file from files group by file having count(file)>1");
-
-			while (rs.next()) {
-				fileList.add(rs.getString("file"));
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			try {
-				statement.close();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-
-		return fileList;
+	public static SQLExecuter getInstance() {
+		return InMemoryConnectionHolder.INSTANCE;
 	}
 
-	public static List<String> getPathList(String file) throws Exception {
-		Statement statement = null;
-		ArrayList<String> pathList = new ArrayList<String>();
-		try {
-			statement = InMemoryConnection.getInstance().getConnection().createStatement();
+	public void insertToTables(String file, String path) throws Exception {
+		create.insertInto(Files.FILES, Files.FILES.FILE, Files.FILES.PATH).values(file, path).execute();
+	}
 
-			ResultSet rs = statement.executeQuery("select path from files where file='" + file + "'");
+	public List<String> getHashs() throws Exception {
+		return create.select(Files.FILES.FILE).from(Files.FILES).groupBy(Files.FILES.FILE).having(Files.FILES.FILE.count().greaterThan(1)).fetch().getValues(Files.FILES.FILE);
+	}
 
-			while (rs.next()) {
-				pathList.add(rs.getString("path"));
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			try {
-				statement.close();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-
-		return pathList;
+	public List<String> getPaths(String hash) throws Exception {
+		return create.select(Files.FILES.PATH).from(Files.FILES).where(Files.FILES.FILE.equal(hash)).fetch().getValues(Files.FILES.PATH);
 	}
 }
