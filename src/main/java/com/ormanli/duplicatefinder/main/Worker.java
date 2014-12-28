@@ -38,6 +38,7 @@ public class Worker implements Runnable {
 				logger.info("Worker " + this.hashCode() + " list length " + fileList.size());
 				for (String filePath : fileList) {
 					String fileHash = FileUtil.getFileHash(filePath);
+					logger.info("File: " + filePath + " Hash: " + fileHash);
 					SQLExecuter.getInstance().insertToTables(fileHash, filePath);
 				}
 			}

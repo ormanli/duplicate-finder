@@ -14,6 +14,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
@@ -21,6 +23,8 @@ import org.jooq.impl.DSL;
 import com.ormanli.duplicatefinder.db.public_.tables.Files;
 
 public class SQLExecuter {
+
+	private static final Logger logger = LogManager.getLogger(SQLExecuter.class);
 
 	private Connection connection;
 	private DSLContext create;
@@ -34,9 +38,9 @@ public class SQLExecuter {
 			// create.createTable(Files.FILES).column(Files.FILES.FILE,
 			// SQLDataType.CHAR).column(Files.FILES.PATH,
 			// SQLDataType.CHAR).execute();
-			create.execute("CREATE TABLE FILES(FILE VARCHAR, PATH VARCHAR);");
+			create.execute("CREATE TABLE FILES(FILE VARCHAR, PATH VARCHAR);");// TODO use createTable
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error("Cannot create in-memory H2 DB ", e);
 		}
 	}
 

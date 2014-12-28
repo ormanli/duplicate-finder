@@ -18,6 +18,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.concurrent.ConcurrentException;
 import org.apache.commons.lang3.concurrent.LazyInitializer;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
@@ -25,6 +27,8 @@ import com.google.common.collect.Queues;
 import com.google.common.io.Files;
 
 public class FileUtil {
+
+	private static final Logger logger = LogManager.getLogger(FileUtil.class);
 
 	private FileUtil() {
 	}
@@ -34,7 +38,8 @@ public class FileUtil {
 	private static volatile LazyInitializer<ConcurrentLinkedQueue<List<String>>> lazyInitializer = new LazyInitializer<ConcurrentLinkedQueue<List<String>>>() {
 		@Override
 		protected ConcurrentLinkedQueue<List<String>> initialize() throws ConcurrentException {
-			return Queues.newConcurrentLinkedQueue(Lists.partition(getFileList(scanDirectory), Runtime.getRuntime().availableProcessors()));
+			List<String> fileList = getFileList(scanDirectory);
+			return Queues.newConcurrentLinkedQueue(Lists.partition(fileList, (int) Math.ceil(fileList.size() / (double) Runtime.getRuntime().availableProcessors())));
 		}
 	};
 
@@ -53,12 +58,16 @@ public class FileUtil {
 			e.printStackTrace();
 		}
 
+		logger.info("All file list " + filePaths);
+
 		return filePaths;
 	}
 
-	public static List<String> getEntryList(String directory) throws Exception {
+	public static synchronized List<String> getEntryList(String directory) throws Exception {
 		scanDirectory = directory;
 		ConcurrentLinkedQueue<List<String>> f = lazyInitializer.get();
+
+		logger.info("Remaining queue " + f);
 
 		return f.poll();
 	}
