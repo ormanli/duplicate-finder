@@ -12,6 +12,7 @@ package com.ormanli.duplicatefinder.main;
 
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -22,28 +23,27 @@ public class Worker implements Runnable {
 
 	private static final Logger logger = LogManager.getLogger(Worker.class);
 
-	private String path;
+	private FileUtil fileUtil;
 
-	public Worker(String path) {
-		super();
-		this.path = path;
+	public Worker(FileUtil fileUtil) {
+		this.fileUtil = fileUtil;
 	}
 
 	@Override
 	public void run() {
 		try {
-			List<String> fileList = FileUtil.getEntryList(path);
+			List<String> fileList = fileUtil.getEntryList();
 
 			if (fileList != null) {
 				logger.info("Worker " + this.hashCode() + " list length " + fileList.size());
 				for (String filePath : fileList) {
-					String fileHash = FileUtil.getFileHash(filePath);
+					String fileHash = fileUtil.getFileHash(filePath);
 					logger.info("File: " + filePath + " Hash: " + fileHash);
 					SQLExecuter.getInstance().insertToTables(fileHash, filePath);
 				}
 			}
 		} catch (Exception e) {
-			logger.error(e);
+			logger.error(StringUtils.EMPTY, e);
 		}
 	}
 

@@ -16,8 +16,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang3.concurrent.ConcurrentException;
-import org.apache.commons.lang3.concurrent.LazyInitializer;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -29,19 +28,12 @@ import com.google.common.io.Files;
 public class FileUtil {
 
 	private static final Logger logger = LogManager.getLogger(FileUtil.class);
+	private volatile ConcurrentLinkedQueue<List<String>> queue;
 
-	private FileUtil() {
+	public FileUtil(String path) {
+		List<String> fileList = getFileList(path);
+		queue = Queues.newConcurrentLinkedQueue(Lists.partition(fileList, (int) Math.ceil(fileList.size() / (double) Runtime.getRuntime().availableProcessors())));
 	}
-
-	private static volatile String scanDirectory = "";
-
-	private static volatile LazyInitializer<ConcurrentLinkedQueue<List<String>>> lazyInitializer = new LazyInitializer<ConcurrentLinkedQueue<List<String>>>() {
-		@Override
-		protected ConcurrentLinkedQueue<List<String>> initialize() throws ConcurrentException {
-			List<String> fileList = getFileList(scanDirectory);
-			return Queues.newConcurrentLinkedQueue(Lists.partition(fileList, (int) Math.ceil(fileList.size() / (double) Runtime.getRuntime().availableProcessors())));
-		}
-	};
 
 	private static List<String> getFileList(String directory) {
 		List<String> filePaths = new LinkedList<String>();
@@ -55,25 +47,18 @@ public class FileUtil {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(StringUtils.EMPTY, e);
 		}
-
-		logger.info("All file list " + filePaths);
 
 		return filePaths;
 	}
 
-	public static synchronized List<String> getEntryList(String directory) throws Exception {
-		scanDirectory = directory;
-		ConcurrentLinkedQueue<List<String>> f = lazyInitializer.get();
-
-		logger.info("Remaining queue " + f);
-
-		return f.poll();
+	public List<String> getEntryList() throws Exception {
+		logger.info(queue);
+		return queue.poll();
 	}
 
-	public static String getFileHash(String path) throws Exception {
+	public String getFileHash(String path) throws Exception {
 		return DigestUtils.sha256Hex(Files.toByteArray(new File(path)));
 	}
-
 }
