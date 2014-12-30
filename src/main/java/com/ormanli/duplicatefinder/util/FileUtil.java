@@ -11,7 +11,7 @@
 package com.ormanli.duplicatefinder.util;
 
 import java.io.File;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -20,7 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.common.collect.FluentIterable;
+import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
 import com.google.common.io.Files;
@@ -28,37 +28,36 @@ import com.google.common.io.Files;
 public class FileUtil {
 
 	private static final Logger logger = LogManager.getLogger(FileUtil.class);
-	private volatile ConcurrentLinkedQueue<List<String>> queue;
+	private volatile ConcurrentLinkedQueue<List<File>> queue;
 
 	public FileUtil(String path) {
-		List<String> fileList = getFileList(path);
+		List<File> fileList = getFileList(path);
 		queue = Queues.newConcurrentLinkedQueue(Lists.partition(fileList, (int) Math.ceil(fileList.size() / (double) Runtime.getRuntime().availableProcessors())));
 	}
 
-	private static List<String> getFileList(String directory) {
-		List<String> filePaths = new LinkedList<String>();
+	private static Predicate<File> isEven = new Predicate<File>() {
+		@Override
+		public boolean apply(File file) {
+			return file.isFile();
+		}
+	};
 
+	private static List<File> getFileList(String directory) {
 		try {
-			FluentIterable<File> files = Files.fileTreeTraverser().breadthFirstTraversal(new File(directory));
-
-			for (File file : files) {
-				if (file.isFile()) {
-					filePaths.add(file.getCanonicalPath());
-				}
-			}
+			return Files.fileTreeTraverser().breadthFirstTraversal(new File(directory)).filter(isEven).toList();
 		} catch (Exception e) {
 			logger.error(StringUtils.EMPTY, e);
 		}
 
-		return filePaths;
+		return new ArrayList<File>();
 	}
 
-	public List<String> getEntryList() throws Exception {
+	public List<File> getEntryList() throws Exception {
 		logger.info(queue);
 		return queue.poll();
 	}
 
-	public String getFileHash(String path) throws Exception {
-		return DigestUtils.sha256Hex(Files.toByteArray(new File(path)));
+	public String getFileHash(File file) throws Exception {
+		return DigestUtils.sha256Hex(Files.toByteArray(file));
 	}
 }

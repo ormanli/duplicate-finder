@@ -10,6 +10,7 @@
  ******************************************************************************/
 package com.ormanli.duplicatefinder.main;
 
+import java.io.File;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
@@ -32,14 +33,14 @@ public class Worker implements Runnable {
 	@Override
 	public void run() {
 		try {
-			List<String> fileList = fileUtil.getEntryList();
+			List<File> fileList = fileUtil.getEntryList();
 
 			if (fileList != null) {
 				logger.info("Worker " + this.hashCode() + " list length " + fileList.size());
-				for (String filePath : fileList) {
+				for (File filePath : fileList) {
 					String fileHash = fileUtil.getFileHash(filePath);
 					logger.info("File: " + filePath + " Hash: " + fileHash);
-					SQLExecuter.getInstance().insertToTables(fileHash, filePath);
+					SQLExecuter.getInstance().insertToTables(fileHash, filePath.getCanonicalPath());
 				}
 			}
 		} catch (Exception e) {
